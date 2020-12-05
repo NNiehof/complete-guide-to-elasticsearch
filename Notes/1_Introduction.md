@@ -1,4 +1,4 @@
-# Introduction
+# 1. Introduction
 
 ## Uses
 * Analyse and structure data (and visualise with Kibana)
