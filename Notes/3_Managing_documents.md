@@ -193,3 +193,74 @@ This versioning is generally not that useful for recovery ("optimistic concurren
 
 ## Optimistic concurrency control
 * If write operations arrive out of sync, prevent overwriting documents with older versions
+
+*Example: handling concurrent visitors of a web app.
+Both buy an item, and both threads update the number of items in stock.
+Asynchronous updating of in stock values can lead to the wrong value.*
+
+By including the primary term and sequence number in the update query, you can prevent a document being updated when it has been changed since you retrieved it.
+
+## Update by query
+```json
+POST /feedback/_update_by_query
+{
+  "script": {
+    "source": "ctx._source.sentiment = 5"
+  }
+}
+```
+Updates all `feedback` docs to include a field `sentiment` and give it value 5.
+
+## Delete by query
+Delete all docs:
+```json
+POST /feedback/_delete_by_query
+{
+  "query": {
+    "match_all": {}
+  }
+}
+```
+
+## Batch processing (bulk API)
+Give the action as a key in the object: `index`. Then the index name to add the doc to (`"_index": "feedback"`) and the doc id `"_id": 4`.
+Then the doc itself.
+
+```json
+POST /_bulk
+{
+  "index": {
+    "_index": "feedback",
+    "_id": 4
+  }
+}
+{
+  "text": "I was unable to reach support today."
+}
+```
+Then add the other docs you want to add below this in the same way. You can have different actions (e.g. "index" and "create") in one bulk request. Just add the action definition and the doc as such:
+```json
+POST /_bulk
+{"index":{"_index":"feedback","_id":4}}
+{"text":"I was unable to reach support today."}
+{"create":{"_index":"feedback","_id":5}}
+{"text":"I can't find the stroopwafels"}
+```
+You can do the same for other actions, such as `update` and `delete` (this last one doesn't require a doc specification).
+
+**Note:**
+1. The content type for the bulk api is `NDJSON`, instead of `JSON` as for the other APIs. This means that the bulk API HTTP header should be set as:
+```json
+Content-Type: application/x-ndjson
+```
+  *(Kibana handles this for you, but with another interface, you might have to specify this.)*
+2. Each line must end with a newline char (`\n` or `\r\n`). Text editors will do this for you if you load in a bulk request body from a file.
+
+## Importing data with cURL
+```shell
+curl -H "Content-Type: application/x-ndjson" -XPOST http://localhost:9200/products/_bulk --data-binary "@products-bulk.json"
+```
+* Header
+* HTTP verb (`-XPOST`)
+* Es URL
+* data specification
